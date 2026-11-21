@@ -391,6 +391,7 @@ function renderGrid(){
         <div class="card-actions">
           ${stockInfo(p).ok ? `<a class="btn btn-wa" target="_blank" rel="noopener" href="${waLink(orderMsg)}">Order</a>` : `<span class="btn btn-ghost" style="opacity:.5;cursor:not-allowed">Sold out</span>`}
           <a class="btn btn-ghost" target="_blank" rel="noopener" href="${waLink(enqMsg)}">Enquire</a>
+          <button class="btn btn-ghost" data-share="${esc(p.id)}" aria-label="Share saree">Share</button>
           ${isAdmin ? `<button class="btn btn-gold" data-edit="${esc(p.id)}">Edit</button>` : ""}
         </div>
       </div>
@@ -429,6 +430,8 @@ function closeVideo(){
   document.getElementById("lightbox").classList.remove("open");
 }
 document.getElementById("grid").addEventListener("click", e => {
+  const sh = e.target.closest("[data-share]");
+  if(sh){ const p = products.find(x => x.id === sh.dataset.share); if(p) shareSaree(p); return; }
   const ed = e.target.closest("[data-edit]");
   if(ed){ const p = products.find(x => x.id === ed.dataset.edit); if(p){ openAdmin(); editProduct(p); } return; }
   const b = e.target.closest("[data-vid]"); if(!b) return;
@@ -436,6 +439,17 @@ document.getElementById("grid").addEventListener("click", e => {
 });
 document.getElementById("lbClose").addEventListener("click", closeVideo);
 document.getElementById("lightbox").addEventListener("click", e => { if(e.target.id === "lightbox") closeVideo(); });
+
+async function shareSaree(p){
+  const url = location.href.split("#")[0];
+  const details = `${p.name}, ${fmt(p.price)}${p.length ? ", " + p.length + " (excl. blouse)" : ""}`;
+  const text = `${details}. From Neeta's World, Malad East, Mumbai.`;
+  if(navigator.share){
+    try{ await navigator.share({ title: p.name, text: text, url: url }); return; }
+    catch(err){ if(err && err.name === "AbortError") return; }
+  }
+  window.open(waLink(`${text}\n\n${url}`), "_blank", "noopener");
+}
 
 /* ===== Admin ===== */
 const adminEl = document.getElementById("admin");
@@ -552,7 +566,8 @@ document.getElementById("productForm").addEventListener("submit", e => {
     price: Number(document.getElementById("pPrice").value),
     fabric: document.getElementById("pFabric").value.trim(),
     colors: document.getElementById("pColors").value.split(",").map(s => s.trim()).filter(Boolean),
-    length: document.getElementById("pLength").value, document.getElementById("pQty").value === "" ? null : Math.max(0, Number(document.getElementById("pQty").value)),
+    length: document.getElementById("pLength").value,
+    qty: document.getElementById("pQty").value === "" ? null : Math.max(0, Number(document.getElementById("pQty").value)),
     details: document.getElementById("pDetails").value.trim(),
     img: photoData || (existing ? existing.img : ""),
     video: videoData || (existing ? existing.video || "" : ""),
